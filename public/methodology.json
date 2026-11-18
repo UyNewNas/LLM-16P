@@ -1,0 +1,96 @@
+{
+  "instrument": "agent-mbti",
+  "version": "1.0.0",
+  "scoringVersion": "1.0.0",
+  "formula": "z = direction × (value − 4); score = mean(z) × 100 / 3; rightPercent = 50 + score / 2",
+  "deadband": {
+    "left": 40,
+    "right": 60,
+    "inclusive": true,
+    "letter": "X"
+  },
+  "coverage": {
+    "full": {
+      "minimum": 10,
+      "perDirection": 4
+    },
+    "quick": {
+      "minimum": 4,
+      "perDirection": 2
+    }
+  },
+  "totalType": "Only shown when every item has a numeric answer; incomplete runs have type XXXX.",
+  "pairConsistency": "100 × (1 − mean(|z_pair1 − z_pair2|)/6). Descriptive response-pattern diagnostic, not psychometric reliability.",
+  "keyVisibility": "The item keys are public in source. The questionnaire JSON omits them to reduce priming, not to provide secure blinding.",
+  "axes": [
+    {
+      "id": "EI",
+      "left": "E",
+      "right": "I",
+      "title": "互动取向",
+      "leftLabel": "互动展开",
+      "rightLabel": "独立整合",
+      "description": "在适合自由安排交流节奏时，偏向通过来回互动展开内容，还是先形成可以独立阅读的完整答复。",
+      "color": "#70C7B0"
+    },
+    {
+      "id": "SN",
+      "left": "S",
+      "right": "N",
+      "title": "信息取向",
+      "leftLabel": "具体观察",
+      "rightLabel": "抽象关联",
+      "description": "在两种表达都适合时，偏向从具体案例与细节切入，还是从整体模型、关联与可迁移的概念切入。",
+      "color": "#D6AE65"
+    },
+    {
+      "id": "TF",
+      "left": "T",
+      "right": "F",
+      "title": "判断与表达",
+      "leftLabel": "分析权衡",
+      "rightLabel": "关系关照",
+      "description": "在同样合理的判断与建议中，偏向突出比较标准和推理，还是突出相关人员已表达的目标与关切。",
+      "color": "#8C9EE6"
+    },
+    {
+      "id": "JP",
+      "left": "J",
+      "right": "P",
+      "title": "推进方式",
+      "leftLabel": "计划收束",
+      "rightLabel": "灵活探索",
+      "description": "在任务允许自行安排路径时，偏向先定结构并逐步收束，还是在内容展开中调整顺序并保留分支。",
+      "color": "#B18FCB"
+    },
+    {
+      "id": "AT",
+      "left": "A",
+      "right": "T",
+      "title": "表达取向（实验）",
+      "leftLabel": "果断表达",
+      "rightLabel": "审慎表达",
+      "description": "在证据、判断和必要限制相同的前提下，偏向直接陈述结论，还是再次呈现条件与保留措辞。仅为实验性表达维度。",
+      "color": "#DF987E"
+    }
+  ],
+  "disclaimer": "本结果仅描述模型在本次配置与问卷中的自述倾向。原创量表尚未经过心理测量学验证，不代表人的人格、模型能力或稳定性；百分比是归一化问卷得分，不是概率。",
+  "sources": [
+    {
+      "title": "16Personalities: Our Framework",
+      "url": "https://www.16personalities.com/articles/our-theory"
+    },
+    {
+      "title": "Self-Assessment Tests are Unreliable Measures of LLM Personality",
+      "url": "https://aclanthology.org/2024.blackboxnlp-1.20/"
+    },
+    {
+      "title": "Large language models display human-like social desirability biases in Big Five personality surveys",
+      "url": "https://academic.oup.com/pnasnexus/article/3/12/pgae533/7919163"
+    },
+    {
+      "title": "A psychometric framework for evaluating and shaping personality traits in large language models",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12719228/"
+    }
+  ]
+}

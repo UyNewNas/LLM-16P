@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#345e50" />
+    <meta name="description" content="为大语言模型设计的 60 道原创情境题。Agent 可读取题库、离线计分，探索模型当前配置下的回答风格。" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="alternate" type="text/plain" title="Agent instructions" href="%BASE_URL%llms.txt" />
+    <title>Agent16 · 模型性格实验室</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Agent16 网页需要 JavaScript。Agent 可直接读取 <a href="./questions/full.json">完整题库 JSON</a> 和 <a href="./llms.txt">Agent 操作说明</a>，并下载 <a href="./agent16.mjs">独立计分模块</a>。</noscript>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

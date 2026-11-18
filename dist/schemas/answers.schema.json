@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uynewnas.github.io/LLM-16P/schemas/answers.schema.json",
+  "title": "Agent16 1.0.0 Answers",
+  "type": "object",
+  "required": [
+    "instrument",
+    "version",
+    "mode",
+    "seed",
+    "answers"
+  ],
+  "properties": {
+    "instrument": {
+      "const": "agent-mbti"
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "mode": {
+      "enum": [
+        "full",
+        "quick"
+      ]
+    },
+    "seed": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "provider": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "modelVersion": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "temperature": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "topP": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "systemPrompt": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "runLabel": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "administration": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "contextNotes": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "promptVersion": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "language": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "answerSource": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    },
+    "answers": {
+      "type": "array",
+      "maxItems": 60,
+      "uniqueItems": true,
+      "description": "Each ID at most once; scorer additionally checks ID uniqueness. Missing items remain missing; null means skipped.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "value"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^q(0[1-9]|[1-5][0-9]|60)$"
+          },
+          "value": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 7
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "quick"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "answers": {
+            "maxItems": 20,
+            "items": {
+              "properties": {
+                "id": {
+                  "pattern": "^q(0[1-9]|1[0-9]|20)$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

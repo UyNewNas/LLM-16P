@@ -1,0 +1,256 @@
+{
+  "instrument": "agent-mbti",
+  "version": "1.0.0",
+  "mode": "full",
+  "seed": "agent16-v1",
+  "metadata": {
+    "model": "",
+    "provider": "",
+    "temperature": null,
+    "systemPrompt": "",
+    "runLabel": "",
+    "administration": "all-at-once"
+  },
+  "answers": [
+    {
+      "id": "q29",
+      "value": null
+    },
+    {
+      "id": "q16",
+      "value": null
+    },
+    {
+      "id": "q34",
+      "value": null
+    },
+    {
+      "id": "q48",
+      "value": null
+    },
+    {
+      "id": "q43",
+      "value": null
+    },
+    {
+      "id": "q12",
+      "value": null
+    },
+    {
+      "id": "q37",
+      "value": null
+    },
+    {
+      "id": "q42",
+      "value": null
+    },
+    {
+      "id": "q58",
+      "value": null
+    },
+    {
+      "id": "q57",
+      "value": null
+    },
+    {
+      "id": "q30",
+      "value": null
+    },
+    {
+      "id": "q50",
+      "value": null
+    },
+    {
+      "id": "q24",
+      "value": null
+    },
+    {
+      "id": "q59",
+      "value": null
+    },
+    {
+      "id": "q51",
+      "value": null
+    },
+    {
+      "id": "q38",
+      "value": null
+    },
+    {
+      "id": "q01",
+      "value": null
+    },
+    {
+      "id": "q21",
+      "value": null
+    },
+    {
+      "id": "q41",
+      "value": null
+    },
+    {
+      "id": "q08",
+      "value": null
+    },
+    {
+      "id": "q28",
+      "value": null
+    },
+    {
+      "id": "q25",
+      "value": null
+    },
+    {
+      "id": "q46",
+      "value": null
+    },
+    {
+      "id": "q44",
+      "value": null
+    },
+    {
+      "id": "q07",
+      "value": null
+    },
+    {
+      "id": "q54",
+      "value": null
+    },
+    {
+      "id": "q55",
+      "value": null
+    },
+    {
+      "id": "q27",
+      "value": null
+    },
+    {
+      "id": "q56",
+      "value": null
+    },
+    {
+      "id": "q09",
+      "value": null
+    },
+    {
+      "id": "q52",
+      "value": null
+    },
+    {
+      "id": "q10",
+      "value": null
+    },
+    {
+      "id": "q53",
+      "value": null
+    },
+    {
+      "id": "q14",
+      "value": null
+    },
+    {
+      "id": "q49",
+      "value": null
+    },
+    {
+      "id": "q22",
+      "value": null
+    },
+    {
+      "id": "q03",
+      "value": null
+    },
+    {
+      "id": "q17",
+      "value": null
+    },
+    {
+      "id": "q26",
+      "value": null
+    },
+    {
+      "id": "q06",
+      "value": null
+    },
+    {
+      "id": "q31",
+      "value": null
+    },
+    {
+      "id": "q32",
+      "value": null
+    },
+    {
+      "id": "q60",
+      "value": null
+    },
+    {
+      "id": "q47",
+      "value": null
+    },
+    {
+      "id": "q23",
+      "value": null
+    },
+    {
+      "id": "q45",
+      "value": null
+    },
+    {
+      "id": "q13",
+      "value": null
+    },
+    {
+      "id": "q19",
+      "value": null
+    },
+    {
+      "id": "q35",
+      "value": null
+    },
+    {
+      "id": "q15",
+      "value": null
+    },
+    {
+      "id": "q20",
+      "value": null
+    },
+    {
+      "id": "q36",
+      "value": null
+    },
+    {
+      "id": "q33",
+      "value": null
+    },
+    {
+      "id": "q39",
+      "value": null
+    },
+    {
+      "id": "q02",
+      "value": null
+    },
+    {
+      "id": "q05",
+      "value": null
+    },
+    {
+      "id": "q04",
+      "value": null
+    },
+    {
+      "id": "q11",
+      "value": null
+    },
+    {
+      "id": "q18",
+      "value": null
+    },
+    {
+      "id": "q40",
+      "value": null
+    }
+  ]
+}

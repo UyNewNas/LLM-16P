@@ -1,0 +1,14 @@
+{
+  "name": "Agent16",
+  "version": "1.0.0",
+  "description": "Original exploratory LLM response-style questionnaire. Static files; no HTTP POST API or model calls.",
+  "instructions": "../llms.txt",
+  "questionnaires": {
+    "full": "../questions/full.json",
+    "quick": "../questions/quick.json"
+  },
+  "answerSchema": "../schemas/answers.schema.json",
+  "scorer": "../agent16.mjs",
+  "methodology": "../methodology.json",
+  "repository": "https://github.com/UyNewNas/LLM-16P"
+}

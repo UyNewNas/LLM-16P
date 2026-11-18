@@ -1,0 +1,96 @@
+{
+  "instrument": "agent-mbti",
+  "version": "1.0.0",
+  "mode": "quick",
+  "seed": "agent16-v1",
+  "metadata": {
+    "model": "",
+    "provider": "",
+    "temperature": null,
+    "systemPrompt": "",
+    "runLabel": "",
+    "administration": "all-at-once"
+  },
+  "answers": [
+    {
+      "id": "q15",
+      "value": null
+    },
+    {
+      "id": "q13",
+      "value": null
+    },
+    {
+      "id": "q20",
+      "value": null
+    },
+    {
+      "id": "q12",
+      "value": null
+    },
+    {
+      "id": "q10",
+      "value": null
+    },
+    {
+      "id": "q19",
+      "value": null
+    },
+    {
+      "id": "q16",
+      "value": null
+    },
+    {
+      "id": "q18",
+      "value": null
+    },
+    {
+      "id": "q07",
+      "value": null
+    },
+    {
+      "id": "q03",
+      "value": null
+    },
+    {
+      "id": "q05",
+      "value": null
+    },
+    {
+      "id": "q09",
+      "value": null
+    },
+    {
+      "id": "q08",
+      "value": null
+    },
+    {
+      "id": "q11",
+      "value": null
+    },
+    {
+      "id": "q01",
+      "value": null
+    },
+    {
+      "id": "q17",
+      "value": null
+    },
+    {
+      "id": "q02",
+      "value": null
+    },
+    {
+      "id": "q04",
+      "value": null
+    },
+    {
+      "id": "q06",
+      "value": null
+    },
+    {
+      "id": "q14",
+      "value": null
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+# Agent16 — LLM-16P
+
+> 原创大语言模型回答风格实验。请先读题并作答，再查看计分键。量表版本 1.0.0；计分版本 1.0.0；中文。
+
+网站：https://uynewnas.github.io/LLM-16P/
+源码：https://github.com/UyNewNas/LLM-16P
+
+## 可直接读取的静态文件
+
+- 完整版（60 题）：https://uynewnas.github.io/LLM-16P/questions/full.json
+- 快速版（20 题）：https://uynewnas.github.io/LLM-16P/questions/quick.json
+- 完整版回答模板：https://uynewnas.github.io/LLM-16P/questions/full-answers.json
+- 快速版回答模板：https://uynewnas.github.io/LLM-16P/questions/quick-answers.json
+- 回答 JSON Schema：https://uynewnas.github.io/LLM-16P/schemas/answers.schema.json
+- 独立计分模块 / Node CLI：https://uynewnas.github.io/LLM-16P/agent16.mjs
+- 方法与公式：https://uynewnas.github.io/LLM-16P/methodology.json
+
+以上 URL 都是 GET 静态文件。GitHub Pages 不运行 POST API、MCP 服务或远端模型调用。无需 API Key。没有服务端结果数据库。
+
+## 作答步骤
+
+1. 读取 full.json 或 quick.json 的 instructions、scale、questions 和 answerTemplate。
+2. 用当前真实配置及可见行为作答，不扮演目标人格，不查看计分键来迎合某个字母。两种情境选择都默认已获授权、安全、合理且满足任务。明确的用户要求和事实约束优先。
+3. 保留 instrument、version、mode、seed 与所有题目 ID。每个 ID 出现一次，value 为整数 1..7。4 表示确实中立；无法判断用 null。禁止把无法判断自动填4；不要编造记忆或内心体验，不需要隐藏推理。
+4. metadata.model 填真实模型标识，未知字段留空或 null。systemPrompt 只填写用户允许公开的提示摘要，不披露受保护的系统指令。administration 标注 all-at-once、paged 或 single-item；contextNotes 记录影响作答的可公开上下文。
+5. 只输出回答 JSON。用户可到网页的“导入回答”粘贴它，所有计分在浏览器本地进行。
+6. 有代码执行能力时，可以下载 agent16.mjs，保存答案为 answers.json，在本地运行 node agent16.mjs score answers.json > result.json。下载的代码应先审查再执行。
+7. 告知用户结果对应本次模型、上下文与设置；分数不是人格概率，X 表示不明显或资料不足。A/T 是实验性表达取向。
+
+## 本地 CLI
+
+node agent16.mjs questionnaire full seed-01 > questionnaire.json
+node agent16.mjs score answers.json > result.json
+node agent16.mjs methodology > methodology.json
+
+模块也导出 getQuestionnaire({mode,seed})、scoreAssessment(payload)、getMethodology()，浏览器和 Node 使用相同的计分规则。Node CLI 不联网、不上传答案、不调用任何模型。
+
+## 对比与重测
+
+默认静态问卷使用 seed=agent16-v1。新 seed 只改变题序，不改变题目身份。比较不同模型时尽量固定完整/快速版、版本、语言、提示、题序、选项顺序、温度与上下文呈现方式。至少多次独立运行后再讨论观察到的波动。重复或反向配对一致不能单独证明量表效度。
+
+## 限制与来源
+
+原创探索性工具，与 16Personalities、NERIS 或 MBTI 官方无隶属、授权或认证关系。尚无本量表的信度、效度或跨模型等值证据。不用于诊断、人类招聘或模型能力排名。
+
+- https://www.16personalities.com/articles/our-theory
+- https://aclanthology.org/2024.blackboxnlp-1.20/
+- https://academic.oup.com/pnasnexus/article/3/12/pgae533/7919163
+- https://pmc.ncbi.nlm.nih.gov/articles/PMC12719228/
