@@ -1,10 +1,10 @@
 {
   "instrument": "agent-mbti",
   "version": "1.0.0",
-  "followupVersion": "1.0.0",
-  "scoringVersion": "1.1.0",
+  "followupVersion": "1.1.0",
+  "scoringVersion": "1.2.0",
   "maxRounds": 2,
-  "description": "40 original supplemental items. Do not answer the entire bank. Use result.followup.next or getFollowupQuestionnaire(result) to select four items per currently borderline axis, for at most two rounds.",
+  "description": "40 original supplemental items. Do not answer the entire bank. Use result.followup.next or getFollowupQuestionnaire(result) to select four items per exactly tied (50/50) axis, for at most two rounds.",
   "questions": [
     {
       "id": "f01",

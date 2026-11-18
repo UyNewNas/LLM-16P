@@ -1,5 +1,7 @@
 # Agent16 design
 
+> Historical design. The X threshold and incomplete-result markers below were superseded by the exact-50% rule in scoring 1.2.0; see `docs/superpowers/plans/2026-11-18-exact50-plan.md`. Legacy follow-up validation remains versioned.
+
 Build a Chinese-language, original LLM response-style questionnaire inspired by the five-spectrum presentation of 16Personalities. The user selected the empty public repository UyNewNas/LLM-16P and GitHub Pages, superseding the initial hosted-service approach.
 
 ## Product

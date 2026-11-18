@@ -84,22 +84,30 @@ test('coverage-gated partial scores do not yield a completed type', () => {
  p.answers[0].value=null;
  const r=scoreAssessment(p);
  assert.equal(r.complete,false);
- assert.equal(r.type,'XXXX');
+ assert.equal(r.type,'????');
  assert.equal(r.axes.find(a=>a.id==='EI').letter,'I');
  assert.equal(r.provisionalType,'INFP');
 });
 
-test('40–60 boundaries are inclusive and use unrounded values', () => {
- const p=input();
- // Each axis sum z=7 gives mean/3=.19444: 59.72%, inside deadband.
+test('only exact zero signed totals produce X; nearest nonzero scores have a direction', () => {
+ for(const mode of ['full','quick']) for(const direction of [-1,1]){
+  const p=input(4,mode);
+  for(const axis of AXES){
+   const q=QUESTIONS.find(q=>q.axis===axis.id&&(mode==='full'||q.quick));
+   p.answers.find(a=>a.id===q.id).value=4+direction*q.direction;
+  }
+  const r=scoreAssessment(p);
+  assert.equal(r.displayType,direction===1?'INFP-T':'ESTJ-A');
+  assert.ok(r.axes.every(a=>a.status==='clear'&&a.rightPercent!==50));
+  assert.equal(r.followup.next,null);
+ }
+ const tied=input();
  for(const axis of AXES){
   const qs=QUESTIONS.filter(q=>q.axis===axis.id);
-  for(const q of qs.slice(0,7)) p.answers.find(a=>a.id===q.id).value=4+q.direction;
+  tied.answers.find(a=>a.id===qs[0].id).value=4+qs[0].direction;
+  tied.answers.find(a=>a.id===qs[1].id).value=4-qs[1].direction;
  }
- const r=scoreAssessment(p);assert.equal(r.displayType,'XXXX-X');
- const q=QUESTIONS.find(q=>q.axis==='EI'&&p.answers.find(a=>a.id===q.id).value===4);
- p.answers.find(a=>a.id===q.id).value=4+q.direction;
- assert.equal(scoreAssessment(p).axes[0].letter,'I');
+ assert.equal(scoreAssessment(tied).displayType,'XXXX-X');
 });
 
 test('full and quick banks preserve balance, unique IDs, and opposite-key pairs', () => {

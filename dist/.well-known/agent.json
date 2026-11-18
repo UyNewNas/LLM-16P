@@ -1,9 +1,9 @@
 {
   "name": "Agent16",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "instrumentVersion": "1.0.0",
-  "scoringVersion": "1.1.0",
-  "description": "Original exploratory LLM response-style questionnaire with bounded targeted follow-up for X dimensions. Static files; no HTTP POST API or model calls.",
+  "scoringVersion": "1.2.0",
+  "description": "Original exploratory LLM response-style questionnaire with bounded targeted follow-up only for exactly tied 50/50 dimensions. Static files; no HTTP POST API or model calls.",
   "instructions": "../llms.txt",
   "questionnaires": {
     "full": "../questions/full.json",
@@ -11,7 +11,7 @@
   },
   "followup": {
     "bank": "../questions/followup.json",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "maxRounds": 2,
     "selection": "scoreAssessment(payload).followup.next or getFollowupQuestionnaire(payload); null when no further round is available"
   },

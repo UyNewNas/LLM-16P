@@ -12,7 +12,7 @@ for(const mode of ['full','quick']){
 }
 await writeFile(new URL('questions/followup.json',root),JSON.stringify({instrument:'agent-mbti',version:'1.0.0',
  followupVersion:FOLLOWUP_VERSION,scoringVersion:SCORING_VERSION,maxRounds:MAX_FOLLOWUP_ROUNDS,
- description:'40 original supplemental items. Do not answer the entire bank. Use result.followup.next or getFollowupQuestionnaire(result) to select four items per currently borderline axis, for at most two rounds.',
+ description:'40 original supplemental items. Do not answer the entire bank. Use result.followup.next or getFollowupQuestionnaire(result) to select four items per exactly tied (50/50) axis, for at most two rounds.',
  questions:FOLLOWUP_QUESTIONS.map(({id,text})=>({id,text}))},null,2)+'\n');
 await writeFile(new URL('methodology.json',root),JSON.stringify(getMethodology(),null,2)+'\n');
 let source=await readFile(new URL('../app/lib/instrument.mjs',import.meta.url),'utf8');
@@ -27,7 +27,7 @@ const schema={
   metadata:{type:'object',properties:{model:{type:'string',maxLength:300},provider:{type:'string',maxLength:300},modelVersion:{type:'string',maxLength:300},temperature:{type:['number','null'],minimum:0,maximum:100},topP:{type:['number','null'],minimum:0,maximum:1},systemPrompt:{type:'string',maxLength:10000},runLabel:{type:'string',maxLength:300},administration:{type:'string',maxLength:300},contextNotes:{type:'string',maxLength:10000},promptVersion:{type:'string',maxLength:300},language:{type:'string',maxLength:300},answerSource:{type:'string',maxLength:300}}},
   origin:{type:'object',required:['id','createdAt'],properties:{id:{type:'string',minLength:1,maxLength:200},createdAt:{type:'string',format:'date-time'}}},
   followups:{type:'array',maxItems:MAX_FOLLOWUP_ROUNDS,description:'Ordered rounds. The scorer recomputes exact eligible axes and question IDs from prior raw answers. Every preceding stage must be complete.',items:{type:'object',required:['version','round','axes','answers'],properties:{
-   version:{const:FOLLOWUP_VERSION},round:{enum:[1,2]},axes:{type:'array',minItems:1,maxItems:5,uniqueItems:true,items:{enum:['EI','SN','TF','JP','AT']}},
+   version:{enum:['1.0.0',FOLLOWUP_VERSION],description:'1.0.0: retained legacy 40–60 assignments; 1.1.0: exact 50/50 selection. New rounds always use 1.1.0; version downgrade is rejected by the scorer.'},round:{enum:[1,2]},axes:{type:'array',minItems:1,maxItems:5,uniqueItems:true,items:{enum:['EI','SN','TF','JP','AT']}},
    answers:{type:'array',maxItems:20,uniqueItems:true,items:{type:'object',required:['id','value'],properties:{id:{type:'string',pattern:'^f(0[1-9]|[1-3][0-9]|40)$'},value:{type:['integer','null'],minimum:1,maximum:7}}}}
   },allOf:[1,2].map(round=>({
     if:{properties:{round:{const:round}}},
@@ -40,6 +40,6 @@ const schema={
  }],
 };
 await writeFile(new URL('schemas/answers.schema.json',root),JSON.stringify(schema,null,2)+'\n');
-await writeFile(new URL('.well-known/agent.json',root),JSON.stringify({name:'Agent16',version:'1.1.0',instrumentVersion:'1.0.0',scoringVersion:SCORING_VERSION,description:'Original exploratory LLM response-style questionnaire with bounded targeted follow-up for X dimensions. Static files; no HTTP POST API or model calls.',instructions:'../llms.txt',questionnaires:{full:'../questions/full.json',quick:'../questions/quick.json'},followup:{bank:'../questions/followup.json',version:FOLLOWUP_VERSION,maxRounds:MAX_FOLLOWUP_ROUNDS,selection:'scoreAssessment(payload).followup.next or getFollowupQuestionnaire(payload); null when no further round is available'},answerSchema:'../schemas/answers.schema.json',scorer:'../agent16.mjs',methodology:'../methodology.json',repository:'https://github.com/UyNewNas/LLM-16P'},null,2)+'\n');
+await writeFile(new URL('.well-known/agent.json',root),JSON.stringify({name:'Agent16',version:SCORING_VERSION,instrumentVersion:'1.0.0',scoringVersion:SCORING_VERSION,description:'Original exploratory LLM response-style questionnaire with bounded targeted follow-up only for exactly tied 50/50 dimensions. Static files; no HTTP POST API or model calls.',instructions:'../llms.txt',questionnaires:{full:'../questions/full.json',quick:'../questions/quick.json'},followup:{bank:'../questions/followup.json',version:FOLLOWUP_VERSION,maxRounds:MAX_FOLLOWUP_ROUNDS,selection:'scoreAssessment(payload).followup.next or getFollowupQuestionnaire(payload); null when no further round is available'},answerSchema:'../schemas/answers.schema.json',scorer:'../agent16.mjs',methodology:'../methodology.json',repository:'https://github.com/UyNewNas/LLM-16P'},null,2)+'\n');
 await writeFile(new URL('.nojekyll',root),'');
 console.log('Exported questionnaires, targeted follow-up bank, answer schema, methodology and standalone scorer.');

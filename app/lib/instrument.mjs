@@ -3,7 +3,8 @@ export { FOLLOWUP_VERSION, MAX_FOLLOWUP_ROUNDS };
 
 export const INSTRUMENT = 'agent-mbti';
 export const VERSION = '1.0.0';
-export const SCORING_VERSION = '1.1.0';
+export const SCORING_VERSION = '1.2.0';
+const LEGACY_FOLLOWUP_VERSION = '1.0.0';
 export const DEFAULT_SEED = 'agent16-v1';
 export const DISCLAIMER = '本结果仅描述模型在本次配置与问卷中的自述倾向。原创量表尚未经过心理测量学验证，不代表人的人格、模型能力或稳定性；百分比是归一化问卷得分，不是概率。';
 export const SCALE = [
@@ -97,9 +98,11 @@ function calculate(payload, metadata, bank, answers) {
     // An unfinished supplemental axis must not become "clear" from one-sided partial answers.
     const supplementComplete=all.filter(q=>q.round!==undefined).every(q=>typeof answers.get(q.id)==='number');
     const enough=baseEnough&&supplementComplete;
-    const raw=enough?100*items.reduce((n,q)=>n+q.direction*(answers.get(q.id)-4),0)/(3*items.length):null;
-    const status=!enough?'insufficient':Math.abs(raw)<=20?'borderline':'clear';
-    const letter=status==='clear'?(raw>0?axis.right:axis.left):'X';
+    const signedTotal=items.reduce((n,q)=>n+q.direction*(answers.get(q.id)-4),0);
+    const raw=enough?100*signedTotal/(3*items.length):null;
+    // Integer totals make an exact 50/50 tie independent of display rounding.
+    const status=!enough?'insufficient':signedTotal===0?'borderline':'clear';
+    const letter=status==='insufficient'?'?':status==='borderline'?'X':signedTotal>0?axis.right:axis.left;
     return {...axis,score:raw===null?null:round(raw),leftPercent:raw===null?null:round(50-raw/2),rightPercent:raw===null?null:round(50+raw/2),letter,status,answered:items.length,total:all.length};
   });
   const neutralCount=numeric.filter(q=>answers.get(q.id)===4).length;
@@ -116,7 +119,7 @@ function calculate(payload, metadata, bank, answers) {
   const pairConsistency=differences.length?round(100*(1-differences.reduce((a,b)=>a+b,0)/(6*differences.length))):null;
   const warnings=[];
   if(!complete) warnings.push(`有效回答 ${answered}/${total}；四字母总类型暂不判定。跳过和缺失不当作中立。`);
-  if(axes.some(a=>a.status==='borderline')) warnings.push('部分维度落在 40–60 的中间区间，用 X 表示暂无明显倾向。');
+  if(axes.some(a=>a.status==='borderline')) warnings.push('部分维度两侧得分恰好相等（50% / 50%），用 X 表示持平。');
   if(axes.some(a=>a.status==='insufficient')) warnings.push('有效回答不足的维度不显示数值：基础完整版需至少 10/12 题且两方向各至少 4 题；快速版需 4/4 题；追加题需在该维度全部有效作答。');
   if(straightLining) warnings.push('所有有效回答选择了同一数值。这是一项响应模式提示，不等于答案无效；请检查是否逐题判断。');
   if(pairConsistency!==null&&pairConsistency<60) warnings.push('反向情境配对的回答差异较大，建议复核语境与题意；此提示不判断诚实程度。');
@@ -124,8 +127,8 @@ function calculate(payload, metadata, bank, answers) {
   if(!metadata.model) warnings.push('未注明模型名称；此结果难以用于后续对比。');
   if(!metadata.systemPrompt) warnings.push('未记录系统提示或提示摘要；重复测试时请尽量固定上下文。');
   const provisionalType=axes.slice(0,4).map(a=>a.letter).join('');
-  const type=complete?provisionalType:'XXXX';
-  const identity=complete?axes[4].letter:'X';
+  const type=complete?provisionalType:'????';
+  const identity=complete?axes[4].letter:'?';
   return {answered,total,complete,type,identity,
     displayType:`${type}-${identity}`,provisionalType,axes,
     quality:{neutralCount,skippedCount,missingCount,straightLining,pairConsistency,pairsCompared:differences.length,warnings},
@@ -135,20 +138,34 @@ function calculate(payload, metadata, bank, answers) {
 const copyAnswers = (answers) => answers.map(({id,value})=>({id,value}));
 const middleAxes = (result) => result.axes.filter(a=>a.status==='borderline').map(a=>a.id);
 
-function nextQuestionnaire(result) {
-  const targetAxes=middleAxes(result),round=(result.followups?.length??0)+1;
+function historicalTargets(result, bank, answers, version) {
+  if(version!==LEGACY_FOLLOWUP_VERSION) return middleAxes(result);
+  // Old assignments remain replayable; their wider selection rule never governs new rounds.
+  return AXES.filter(axis=>{
+    const items=bank.filter(q=>q.axis===axis.id);
+    const signedTotal=items.reduce((n,q)=>n+q.direction*(answers.get(q.id)-4),0);
+    return Math.abs(100*signedTotal/(3*items.length))<=20;
+  }).map(axis=>axis.id);
+}
+
+function nextQuestionnaire(result, existingRound=null) {
+  const targetAxes=existingRound?[...existingRound.axes]:middleAxes(result);
+  const round=existingRound?.round??(result.followups?.length??0)+1;
+  const version=existingRound?.version??FOLLOWUP_VERSION;
+  const prefix=existingRound?result.followups.slice(0,-1):(result.followups??[]);
+  const savedAnswers=new Map((existingRound?.answers??[]).map(a=>[a.id,a.value]));
   const questions=seededOrder(FOLLOWUP_QUESTIONS.filter(q=>q.round===round&&targetAxes.includes(q.axis)),`${result.seed}:followup:${round}`).map(({id,text})=>({id,text}));
   const origin=result.origin??{id:result.id,createdAt:result.createdAt};
   return {
     instrument:INSTRUMENT,version:VERSION,scoringVersion:SCORING_VERSION,kind:'followup',
-    followupVersion:FOLLOWUP_VERSION,mode:result.mode,seed:result.seed,language:'zh-CN',
+    followupVersion:version,mode:result.mode,seed:result.seed,language:'zh-CN',
     round,targetAxes,maxRounds:MAX_FOLLOWUP_ROUNDS,
     instructions:INSTRUCTIONS+' 本次为追加情境题。保持原来的模型、提示与采样设置，依据实际行为独立作答。保留根 answers、metadata、origin 及已经完成的 followups 原样，只填写 followups 数组最后一轮的 answers。不要修改此前答案，也不要为了得到某个类型而改变回答。补测结束仍可保留 X。',
     scale:SCALE.map(x=>({...x})),questions,
     answerTemplate:{instrument:INSTRUMENT,version:VERSION,mode:result.mode,seed:result.seed,
       metadata:{...result.metadata},origin,answers:copyAnswers(result.answers),
-      followups:[...(result.followups??[]).map(f=>({...f,axes:[...f.axes],answers:copyAnswers(f.answers)})),
-        {version:FOLLOWUP_VERSION,round,axes:[...targetAxes],answers:questions.map(q=>({id:q.id,value:null}))}]},
+      followups:[...prefix.map(f=>({...f,axes:[...f.axes],answers:copyAnswers(f.answers)})),
+        {version,round,axes:[...targetAxes],answers:questions.map(q=>({id:q.id,value:savedAnswers.get(q.id)??null}))}]},
   };
 }
 
@@ -168,16 +185,17 @@ export function scoreAssessment(payload) {
   for(let i=0;i<submitted.length;i++) {
     const f=submitted[i],round=i+1;
     if(!current.complete) fail('开始下一轮补测前，必须补齐基础问卷及此前轮次的全部有效回答。');
-    const targets=middleAxes(current);
-    if(!targets.length) fail('当前没有处于 X 边界区间的维度，无需继续补测。');
-    if(!object(f)||f.version!==FOLLOWUP_VERSION) fail(`补测题库版本不匹配；需要 ${FOLLOWUP_VERSION}。`);
+    if(!object(f)||![LEGACY_FOLLOWUP_VERSION,FOLLOWUP_VERSION].includes(f.version)) fail(`补测版本不匹配；支持旧版 ${LEGACY_FOLLOWUP_VERSION} 或当前版 ${FOLLOWUP_VERSION}。`);
+    if(f.version===LEGACY_FOLLOWUP_VERSION&&followups.some(previous=>previous.version!==LEGACY_FOLLOWUP_VERSION)) fail('补测版本不能在新版轮次之后倒退到旧版。');
+    const targets=historicalTargets(current,bank,answers,f.version);
+    if(!targets.length) fail('当前没有符合该补测版本条件的维度，无需继续补测。');
     if(f.round!==round) fail(`补测 round 必须按顺序为第 ${round} 轮。`);
-    if(!Array.isArray(f.axes)||f.axes.length!==targets.length||new Set(f.axes).size!==targets.length||f.axes.some(id=>!targets.includes(id))) fail(`第 ${round} 轮的 axes 必须为重算后仍处于 X 区间的维度：${targets.join(', ')}。`);
+    if(!Array.isArray(f.axes)||f.axes.length!==targets.length||new Set(f.axes).size!==targets.length||f.axes.some(id=>!targets.includes(id))) fail(`第 ${round} 轮的 axes 必须为按补测版本 ${f.version} 重算后符合条件的维度：${targets.join(', ')}。`);
     const extra=FOLLOWUP_QUESTIONS.filter(q=>q.round===round&&targets.includes(q.axis));
     const extraAnswers=cleanAnswers(f.answers,extra);
     bank.push(...extra);
     for(const [id,value] of extraAnswers) answers.set(id,value);
-    followups.push({version:FOLLOWUP_VERSION,round,axes:[...targets],answers:copyAnswers(f.answers)});
+    followups.push({version:f.version,round,axes:[...targets],answers:copyAnswers(f.answers)});
     current=calculate(payload,metadata,bank,answers);
     if(current.complete) roundsCompleted++;
   }
@@ -187,7 +205,8 @@ export function scoreAssessment(payload) {
     current.quality.warnings.push('追加题与基础题在各维度内等权合并。补测维度与轮数由先前结果选择，不能把不同补测题目组合当作同一固定问卷比较。');
     if(!current.complete) current.quality.warnings.push('本轮追加回答未完整：含跳过或缺失的补测维度暂不显示合并分数，也不生成下一轮。可补齐本轮 JSON 后重新导入；原始画像仍保留。');
   }
-  if(status==='limit') current.quality.warnings.push('已完成最多两轮补测；仍在中间区间的维度保留 X，不再追加题目。');
+  if(followups.some(f=>f.version===LEGACY_FOLLOWUP_VERSION)) current.quality.warnings.push('已保留旧版补测题目与答案；字母按当前规则重算，仅精确 50% / 50% 时为 X，新补测也只针对持平维度。');
+  if(status==='limit') current.quality.warnings.push('已完成最多两轮补测；仍为 50% / 50% 的维度保留 X，不再追加题目。');
   const result={
     id:globalThis.crypto?.randomUUID?.()??`run-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt:new Date().toISOString(),instrument:INSTRUMENT,version:VERSION,scoringVersion:SCORING_VERSION,
@@ -200,30 +219,34 @@ export function scoreAssessment(payload) {
 }
 
 /** Recompute eligibility from raw answers. Never trusts imported letters or next-question suggestions. */
-export function getFollowupQuestionnaire(payload) {
+export function getFollowupQuestionnaire(payload, options={}) {
+  if(!object(options)||(options.resumeCurrent!==undefined&&typeof options.resumeCurrent!=='boolean')) fail('补测选项必须是对象；resumeCurrent 必须为布尔值。');
   const result=scoreAssessment(payload);
-  if(!result.followup.next) return null;
+  const resume=options.resumeCurrent===true;
+  if(resume?(result.complete||!result.followups?.length):!result.followup.next) return null;
   // Looking up questions for an existing result is not a new experiment.
   // Scoring/exporting input, in contrast, creates its own result identity.
   if(typeof payload.id==='string'&&payload.id.length&&payload.id.length<=200
     &&typeof payload.createdAt==='string'&&Number.isFinite(Date.parse(payload.createdAt))) {
     result.id=payload.id;result.createdAt=new Date(payload.createdAt).toISOString();
   }
-  return nextQuestionnaire(result);
+  return nextQuestionnaire(result,resume?result.followups.at(-1):null);
 }
 
 export function getMethodology() {
   return {
     instrument:INSTRUMENT,version:VERSION,scoringVersion:SCORING_VERSION,
     formula:'z = direction × (value − 4); score = mean(z) × 100 / 3; rightPercent = 50 + score / 2',
-    deadband:{left:40,right:60,inclusive:true,letter:'X'},
+    deadband:{left:50,right:50,inclusive:true,letter:'X'},
+    classification:'Only integer signedTotal === 0 yields X (exactly 50/50). Any positive/negative total yields its pole. Insufficient coverage uses ?, never X. Rounded percentages do not decide letters.',
     coverage:{full:{minimum:10,perDirection:4},quick:{minimum:4,perDirection:2}},
     followup:{version:FOLLOWUP_VERSION,maxRounds:MAX_FOLLOWUP_ROUNDS,itemsPerAxisPerRound:4,
-      eligibility:'Only complete preceding stages; target exactly the axes whose unrounded rightPercent is in inclusive [40,60].',
-      scoring:'Pool base and supplemental answers with equal weight within each axis; unchanged deadband. All supplemental items on an axis must be numeric before showing its pooled score.',
-      stopping:'Stop when no axis is borderline or after two rounds. Preserve X if still in the middle interval; incomplete stages do not advance.',
+      eligibility:'Only complete preceding stages; target exactly the axes whose integer signed total is zero (rightPercent exactly 50).',
+      scoring:'Pool base and supplemental answers with equal weight within each axis; X only for an exact tie. All supplemental items on an axis must be numeric before showing its pooled score.',
+      stopping:'Stop when no axis is tied or after two rounds. Preserve X for exact ties; incomplete stages do not advance.',
+      legacy:{version:LEGACY_FOLLOWUP_VERSION,eligibility:'Previously issued rounds retain their inclusive 40–60 targeting validation; displayed letters and all newly generated rounds use current exact-50 rules. Version downgrade after a current round is rejected.'},
       interpretation:'Exploratory follow-up, not validated adaptive testing, higher confidence, or an independent retest. Different selected axes, rounds, modes and item sets are not equivalent forms.'},
-    totalType:'Only shown when every item has a numeric answer; incomplete runs have type XXXX.',
+    totalType:'Only shown when every item has a numeric answer; incomplete runs have type ???? and identity ?.',
     pairConsistency:'100 × (1 − mean(|z_pair1 − z_pair2|)/6). Descriptive response-pattern diagnostic, not psychometric reliability.',
     keyVisibility:'The item keys are public in source. The questionnaire JSON omits them to reduce priming, not to provide secure blinding.',
     axes:AXES.map(a=>({...a})),disclaimer:DISCLAIMER,

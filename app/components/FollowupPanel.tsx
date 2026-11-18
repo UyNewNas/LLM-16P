@@ -26,7 +26,7 @@ export default function FollowupPanel({ next, summary, axes, roundsSubmitted, er
       <span className="followup-icon">{next ? <Sparkles size={22} strokeWidth={1.6} /> : summary?.status === 'resolved' ? <Check size={22} /> : <HelpCircle size={22} strokeWidth={1.6} />}</span>
       <div>
         <div className="eyebrow">A FEW MORE QUESTIONS · 针对性补测</div>
-        <h2 id="followup-title">{next ? '再问几题，让 X 更具体。' : error ? '暂时无法生成补测题目' : summary?.status === 'limit' ? '两轮之后，X 也可以是答案。' : summary?.status === 'incomplete' ? '先补齐回答，再继续探索。' : '每个维度已有明确倾向。'}</h2>
+        <h2 id="followup-title">{next ? '再问几题，让 X 更具体。' : error ? '暂时无法生成补测题目' : summary?.status === 'limit' ? '两轮之后，X 也可以是答案。' : summary?.status === 'incomplete' ? '先补齐回答，再继续探索。' : '每个维度已有方向倾向。'}</h2>
       </div>
       {next && <span className="followup-round">第 {next.round} / {next.maxRounds || 2} 轮</span>}
     </div>
@@ -40,7 +40,7 @@ export default function FollowupPanel({ next, summary, axes, roundsSubmitted, er
     </div>}
 
     {next ? <>
-      <p className="followup-description">已为仍处于中间区间的维度生成 <strong>{next.questions.length} 道新题</strong>。每个维度 4 题，只补充尚未分明的部分。</p>
+      <p className="followup-description">已为得分精确 50% / 50% 持平的维度生成 <strong>{next.questions.length} 道新题</strong>。每个维度 4 题，只补充当前为 X 的部分。</p>
       <div className="followup-targets" aria-label="本轮补测维度">{targets.map(axis => <span key={axis.id}><b>{axis.left} / {axis.right}</b>{axis.title}<small>X</small></span>)}</div>
       <div className="followup-actions">
         <button className="button primary" onClick={onManual}>开始第 {next.round} 轮补测 <ArrowRight size={16} /></button>
@@ -52,12 +52,12 @@ export default function FollowupPanel({ next, summary, axes, roundsSubmitted, er
         <ol>{next.questions.map(question => <li key={question.id}><span>{question.text}</span><code>{question.id}</code></li>)}</ol>
       </details>
       <div className="followup-downloads"><button className="text-link" onClick={onDownload}><Download size={14} /> 下载补测题目 JSON</button><button className="text-link" onClick={onTemplate}><FileJson size={14} /> 下载回答模板</button></div>
-      <p className="followup-limit">最多追加 2 轮。保持相同模型和运行条件；补测后仍在 40–60 中间区间，就保留 X。追加题目用于进一步观察，不保证得到确定字母。</p>
+      <p className="followup-limit">最多追加 2 轮。保持相同模型和运行条件；补测后仍精确为 50% / 50%，就保留 X；偏向任一侧即显示相应字母。追加题目用于进一步观察，不保证得到确定字母。</p>
     </> : <div className="followup-stop">
       {error ? <p>这份记录的原始回答无法通过校验：{error}。可以导出 JSON 检查，或重新导入包含原始 answers 的完整结果。</p>
-        : summary?.status === 'incomplete' ? <><p>{hasFollowup ? '本轮补测还有跳过或缺失的回答。补齐当前轮次后，才能生成下一轮题目；原始测评记录仍保留。' : 'X 可能来自跳过或缺失，不能直接作为加题依据。请先补齐原问卷，再判断哪些维度需要补测。'}</p><p>可以返回当前问卷继续填写，已有回答会保留。也可导出 JSON 补齐后重新导入；无法判断时，保留跳过和当前结果即可。</p></>
-        : summary?.status === 'limit' ? <p>已达到两轮补测上限。仍为 X 的维度表示本次回答暂未呈现明显倾向，结果会如实保留，不再为了得到某个字母继续加题。</p>
-        : <p>{hasFollowup ? '补测后所有维度均已离开中间区间，本次无需继续加题。' : '当前没有落在 40–60 中间区间的维度，无需追加题目。'}这仍是本次上下文中的回答快照。</p>}
+        : summary?.status === 'incomplete' ? <><p>{hasFollowup ? '本轮补测还有跳过或缺失的回答。补齐当前轮次后，才能生成下一轮题目；原始测评记录仍保留。' : '跳过或缺失用 ? 标记，不能作为加题依据。请先补齐原问卷，再判断哪些维度精确持平、需要补测。'}</p><p>可以返回当前问卷继续填写，已有回答会保留。也可导出 JSON 补齐后重新导入；无法判断时，保留跳过和当前结果即可。</p></>
+        : summary?.status === 'limit' ? <p>已达到两轮补测上限。仍为 X 的维度表示本次回答得分精确为 50% / 50%，结果会如实保留，不再为了得到某个字母继续加题。</p>
+        : <p>{hasFollowup ? '补测后所有维度的得分均已偏向一侧，本次无需继续加题。' : '当前没有精确 50% / 50% 持平的维度，无需追加题目。'}这仍是本次上下文中的回答快照。</p>}
       {!error && summary?.status === 'incomplete' && <button className="button secondary compact" onClick={onResume}>补齐当前问卷 <ArrowRight size={14} /></button>}
       {(error || summary?.status === 'incomplete') && <button className="text-link" onClick={onExport}><Download size={14} /> 导出当前回答</button>}
     </div>}

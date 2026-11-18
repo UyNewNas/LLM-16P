@@ -106,7 +106,7 @@ test('partial base or supplemental responses do not trigger another round or imp
   const last=p.followups[0];const skipped=last.answers.find(a=>FOLLOWUP_QUESTIONS.find(q=>q.id===a.id).axis==='TF');
   skipped.value=null;
   const r=scoreAssessment(p);
-  assert.equal(r.complete,false);assert.equal(r.displayType,'XXXX-X');
+  assert.equal(r.complete,false);assert.equal(r.displayType,'????-?');
   assert.equal(r.axes.find(a=>a.id==='TF').status,'insufficient');
   assert.equal(r.axes.find(a=>a.id==='TF').score,null);
   assert.equal(r.followup.status,'incomplete');assert.equal(r.followup.roundsCompleted,0);assert.equal(r.followup.next,null);
@@ -136,14 +136,15 @@ test('validation derives eligible targets from original answers and rejects inva
   assert.throws(()=>scoreAssessment(wrongRound),/ID|题目/);
 });
 
-test('boundary remains inclusive after pooling and is not forced to a letter',()=>{
+test('pooled scores use X only at an exact tie and classify the smallest nonzero sum',()=>{
   const p=answerNext(base());
-  // Full: 16 items. Sum z=9 remains 59.375%, sum z=10 gives 60.4167%.
   const tf=p.followups[0].answers.filter(a=>FOLLOWUP_QUESTIONS.find(q=>q.id===a.id).axis==='TF');
-  for(const a of tf.slice(0,3)) a.value=4+3*FOLLOWUP_QUESTIONS.find(q=>q.id===a.id).direction;
   assert.equal(scoreAssessment(p).axes[2].letter,'X');
-  tf[3].value=4+FOLLOWUP_QUESTIONS.find(q=>q.id===tf[3].id).direction;
-  assert.equal(scoreAssessment(p).axes[2].letter,'F');
+  tf[0].value=4+FOLLOWUP_QUESTIONS.find(q=>q.id===tf[0].id).direction;
+  const result=scoreAssessment(p);
+  assert.equal(result.axes[2].letter,'F');
+  assert.equal(result.axes[2].rightPercent,51.04);
+  assert.deepEqual(result.followup.next.targetAxes,['AT']);
 });
 
 test('legacy exports and cumulative history restore retain raw answers, scores and timestamps',()=>{
@@ -183,7 +184,7 @@ test('downloadable scorer and key-free static supplemental bank match the browse
   assert.deepEqual(standalone.axes,local.axes);
   assert.deepEqual(standalone.followups,local.followups);
   assert.deepEqual(standalone.followup,local.followup);
-  assert.equal(standalone.scoringVersion,'1.1.0');
+  assert.equal(standalone.scoringVersion,'1.2.0');
 });
 
 test('offline CLI emits targeted next questions and honours the stopping state',async()=>{

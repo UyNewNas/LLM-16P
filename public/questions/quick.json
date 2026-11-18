@@ -1,7 +1,7 @@
 {
   "instrument": "agent-mbti",
   "version": "1.0.0",
-  "scoringVersion": "1.1.0",
+  "scoringVersion": "1.2.0",
   "mode": "quick",
   "seed": "agent16-v1",
   "language": "zh-CN",

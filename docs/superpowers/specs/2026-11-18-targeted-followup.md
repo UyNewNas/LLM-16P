@@ -1,5 +1,7 @@
 # Targeted follow-up for X dimensions
 
+> Historical design. The X threshold and incomplete-result markers below were superseded by the exact-50% rule in scoring 1.2.0; see `docs/superpowers/plans/2026-11-18-exact50-plan.md`. Legacy follow-up validation remains versioned.
+
 The result page and machine-readable result should offer fresh questions for dimensions in the inclusive 40–60 middle interval. This is a bounded exploratory extension, not a validated adaptive test or a requirement to produce a definite type.
 
 ## Contract

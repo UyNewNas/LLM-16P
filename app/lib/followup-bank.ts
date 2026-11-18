@@ -1,12 +1,13 @@
 import type { AxisId } from './question-bank.ts';
 
 /**
- * Original supplemental items for dimensions whose accumulated score is in
- * the middle interval. This bank is exploratory, not a calibrated adaptive
+ * Original supplemental items for dimensions whose accumulated score is
+ * exactly tied at 50/50. This bank is exploratory, not a calibrated adaptive
  * test. Agreement with +1 favors the right pole; -1 favors the left.
  * The base questionnaire's authorized / equally appropriate premise applies.
  */
-export const FOLLOWUP_VERSION = '1.0.0';
+// Protocol 1.1.0 selects only exact ties; item wording and keys are unchanged.
+export const FOLLOWUP_VERSION = '1.1.0';
 export const MAX_FOLLOWUP_ROUNDS = 2;
 
 export type FollowupQuestion = {

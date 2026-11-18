@@ -120,7 +120,11 @@
         ],
         "properties": {
           "version": {
-            "const": "1.0.0"
+            "enum": [
+              "1.0.0",
+              "1.1.0"
+            ],
+            "description": "1.0.0: retained legacy 40–60 assignments; 1.1.0: exact 50/50 selection. New rounds always use 1.1.0; version downgrade is rejected by the scorer."
           },
           "round": {
             "enum": [

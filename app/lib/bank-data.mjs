@@ -855,5 +855,5 @@ export const FOLLOWUP_QUESTIONS = [
     "text": "将一份建议画成图表、且图例已经交代必要前提时，我更常让结论标注直接写出建议内容。"
   }
 ];
-export const FOLLOWUP_VERSION = "1.0.0";
+export const FOLLOWUP_VERSION = "1.1.0";
 export const MAX_FOLLOWUP_ROUNDS = 2;

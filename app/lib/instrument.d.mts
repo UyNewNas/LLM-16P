@@ -53,5 +53,5 @@ export const SCALE: {value:number;label:string}[];
 export class AssessmentError extends Error { code: string; }
 export function getQuestionnaire(options?: {mode?: Mode; seed?: string}): Questionnaire;
 export function scoreAssessment(payload: unknown): AssessmentResult;
-export function getFollowupQuestionnaire(payload: unknown): FollowupQuestionnaire | null;
+export function getFollowupQuestionnaire(payload: unknown, options?: {resumeCurrent?: boolean}): FollowupQuestionnaire | null;
 export function getMethodology(): Record<string, unknown>;
