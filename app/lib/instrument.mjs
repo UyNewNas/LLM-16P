@@ -1,8 +1,9 @@
-import { AXES, QUESTIONS } from './bank-data.mjs';
+import { AXES, QUESTIONS, FOLLOWUP_QUESTIONS, FOLLOWUP_VERSION, MAX_FOLLOWUP_ROUNDS } from './bank-data.mjs';
+export { FOLLOWUP_VERSION, MAX_FOLLOWUP_ROUNDS };
 
 export const INSTRUMENT = 'agent-mbti';
 export const VERSION = '1.0.0';
-export const SCORING_VERSION = '1.0.0';
+export const SCORING_VERSION = '1.1.0';
 export const DEFAULT_SEED = 'agent16-v1';
 export const DISCLAIMER = '本结果仅描述模型在本次配置与问卷中的自述倾向。原创量表尚未经过心理测量学验证，不代表人的人格、模型能力或稳定性；百分比是归一化问卷得分，不是概率。';
 export const SCALE = [
@@ -65,27 +66,37 @@ function cleanMetadata(metadata) {
   return out;
 }
 
-export function scoreAssessment(payload) {
-  if(!object(payload)) fail('回答必须是 JSON 对象。');
-  if(payload.instrument!==INSTRUMENT) fail('instrument 必须为 agent-mbti。');
-  if(payload.version!==VERSION) fail(`题库版本不匹配；需要 ${VERSION}。`);
-  validateOptions(payload.mode,payload.seed);
-  if(!Array.isArray(payload.answers) || payload.answers.length>60) fail('answers 必须是至多 60 项的数组，不能含重复题目。');
-  const metadata=cleanMetadata(payload.metadata);
-  const bank=selected(payload.mode),validIds=new Set(bank.map(q=>q.id)),answers=new Map();
-  for(const a of payload.answers){
+function cleanAnswers(input, bank) {
+  if(!Array.isArray(input) || input.length>bank.length) fail(`answers 必须是至多 ${bank.length} 项的数组，不能含重复题目。`);
+  const validIds=new Set(bank.map(q=>q.id)),answers=new Map();
+  for(const a of input){
     if(!object(a)||typeof a.id!=='string') fail('每个回答必须包含字符串 id 和整数 value（1–7）或 null。');
-    if(!validIds.has(a.id)) fail(`未知或不属于当前模式的题目 ID：${a.id}。`);
+    if(!validIds.has(a.id)) fail(`未知或不属于当前模式 / 补测轮次的题目 ID：${a.id}。`);
     if(answers.has(a.id)) fail(`重复题目 ID：${a.id}。`);
     if(a.value!==null && (!Number.isInteger(a.value)||a.value<1||a.value>7)) fail(`${a.id} 的 value 必须是 1–7 的整数或 null。`);
     answers.set(a.id,a.value);
   }
+  return answers;
+}
+
+function cleanOrigin(origin) {
+  if(origin===undefined) return undefined;
+  if(!object(origin)||typeof origin.id!=='string'||!origin.id.length||origin.id.length>200
+    ||typeof origin.createdAt!=='string'||!Number.isFinite(Date.parse(origin.createdAt))) fail('origin 必须包含有效的原始运行 id 和 createdAt。');
+  return {id:origin.id,createdAt:new Date(origin.createdAt).toISOString()};
+}
+
+function calculate(payload, metadata, bank, answers) {
   const numeric=bank.filter(q=>typeof answers.get(q.id)==='number');
   const answered=numeric.length,total=bank.length,complete=answered===total;
   const axes=AXES.map(axis=>{
     const all=bank.filter(q=>q.axis===axis.id),items=numeric.filter(q=>q.axis===axis.id);
-    const positive=items.filter(q=>q.direction===1).length,negative=items.length-positive;
-    const enough=payload.mode==='quick'?items.length===4:items.length>=10&&positive>=4&&negative>=4;
+    const baseItems=items.filter(q=>q.round===undefined);
+    const positive=baseItems.filter(q=>q.direction===1).length,negative=baseItems.length-positive;
+    const baseEnough=payload.mode==='quick'?baseItems.length===4:baseItems.length>=10&&positive>=4&&negative>=4;
+    // An unfinished supplemental axis must not become "clear" from one-sided partial answers.
+    const supplementComplete=all.filter(q=>q.round!==undefined).every(q=>typeof answers.get(q.id)==='number');
+    const enough=baseEnough&&supplementComplete;
     const raw=enough?100*items.reduce((n,q)=>n+q.direction*(answers.get(q.id)-4),0)/(3*items.length):null;
     const status=!enough?'insufficient':Math.abs(raw)<=20?'borderline':'clear';
     const letter=status==='clear'?(raw>0?axis.right:axis.left):'X';
@@ -106,7 +117,7 @@ export function scoreAssessment(payload) {
   const warnings=[];
   if(!complete) warnings.push(`有效回答 ${answered}/${total}；四字母总类型暂不判定。跳过和缺失不当作中立。`);
   if(axes.some(a=>a.status==='borderline')) warnings.push('部分维度落在 40–60 的中间区间，用 X 表示暂无明显倾向。');
-  if(axes.some(a=>a.status==='insufficient')) warnings.push('有效回答不足的维度不显示数值：完整版需至少 10/12 题且两方向各至少 4 题；快速版需 4/4 题。');
+  if(axes.some(a=>a.status==='insufficient')) warnings.push('有效回答不足的维度不显示数值：基础完整版需至少 10/12 题且两方向各至少 4 题；快速版需 4/4 题；追加题需在该维度全部有效作答。');
   if(straightLining) warnings.push('所有有效回答选择了同一数值。这是一项响应模式提示，不等于答案无效；请检查是否逐题判断。');
   if(pairConsistency!==null&&pairConsistency<60) warnings.push('反向情境配对的回答差异较大，建议复核语境与题意；此提示不判断诚实程度。');
   if(payload.mode==='quick') warnings.push('20 题为快速探索，不能视作与 60 题完整版等价。');
@@ -115,15 +126,90 @@ export function scoreAssessment(payload) {
   const provisionalType=axes.slice(0,4).map(a=>a.letter).join('');
   const type=complete?provisionalType:'XXXX';
   const identity=complete?axes[4].letter:'X';
-  return {
-    id:globalThis.crypto?.randomUUID?.()??`run-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    createdAt:new Date().toISOString(),instrument:INSTRUMENT,version:VERSION,scoringVersion:SCORING_VERSION,
-    mode:payload.mode,seed:payload.seed,metadata,answered,total,complete,type,identity,
+  return {answered,total,complete,type,identity,
     displayType:`${type}-${identity}`,provisionalType,axes,
     quality:{neutralCount,skippedCount,missingCount,straightLining,pairConsistency,pairsCompared:differences.length,warnings},
-    answers:payload.answers.map(a=>({id:a.id,value:a.value})),
-    disclaimer:DISCLAIMER,
   };
+}
+
+const copyAnswers = (answers) => answers.map(({id,value})=>({id,value}));
+const middleAxes = (result) => result.axes.filter(a=>a.status==='borderline').map(a=>a.id);
+
+function nextQuestionnaire(result) {
+  const targetAxes=middleAxes(result),round=(result.followups?.length??0)+1;
+  const questions=seededOrder(FOLLOWUP_QUESTIONS.filter(q=>q.round===round&&targetAxes.includes(q.axis)),`${result.seed}:followup:${round}`).map(({id,text})=>({id,text}));
+  const origin=result.origin??{id:result.id,createdAt:result.createdAt};
+  return {
+    instrument:INSTRUMENT,version:VERSION,scoringVersion:SCORING_VERSION,kind:'followup',
+    followupVersion:FOLLOWUP_VERSION,mode:result.mode,seed:result.seed,language:'zh-CN',
+    round,targetAxes,maxRounds:MAX_FOLLOWUP_ROUNDS,
+    instructions:INSTRUCTIONS+' 本次为追加情境题。保持原来的模型、提示与采样设置，依据实际行为独立作答。保留根 answers、metadata、origin 及已经完成的 followups 原样，只填写 followups 数组最后一轮的 answers。不要修改此前答案，也不要为了得到某个类型而改变回答。补测结束仍可保留 X。',
+    scale:SCALE.map(x=>({...x})),questions,
+    answerTemplate:{instrument:INSTRUMENT,version:VERSION,mode:result.mode,seed:result.seed,
+      metadata:{...result.metadata},origin,answers:copyAnswers(result.answers),
+      followups:[...(result.followups??[]).map(f=>({...f,axes:[...f.axes],answers:copyAnswers(f.answers)})),
+        {version:FOLLOWUP_VERSION,round,axes:[...targetAxes],answers:questions.map(q=>({id:q.id,value:null}))}]},
+  };
+}
+
+export function scoreAssessment(payload) {
+  if(!object(payload)) fail('回答必须是 JSON 对象。');
+  if(payload.instrument!==INSTRUMENT) fail('instrument 必须为 agent-mbti。');
+  if(payload.version!==VERSION) fail(`题库版本不匹配；需要 ${VERSION}。`);
+  validateOptions(payload.mode,payload.seed);
+  const metadata=cleanMetadata(payload.metadata),origin=cleanOrigin(payload.origin);
+  const bank=selected(payload.mode),answers=cleanAnswers(payload.answers,bank);
+  let current=calculate(payload,metadata,bank,answers);
+  const baseline={displayType:current.displayType,axes:current.axes.map(a=>({...a})),answered:current.answered,total:current.total};
+  const submitted=payload.followups===undefined?[]:payload.followups;
+  if(!Array.isArray(submitted)||submitted.length>MAX_FOLLOWUP_ROUNDS) fail('followups 必须是最多两轮（2 项）的数组。');
+  const followups=[];
+  let roundsCompleted=0;
+  for(let i=0;i<submitted.length;i++) {
+    const f=submitted[i],round=i+1;
+    if(!current.complete) fail('开始下一轮补测前，必须补齐基础问卷及此前轮次的全部有效回答。');
+    const targets=middleAxes(current);
+    if(!targets.length) fail('当前没有处于 X 边界区间的维度，无需继续补测。');
+    if(!object(f)||f.version!==FOLLOWUP_VERSION) fail(`补测题库版本不匹配；需要 ${FOLLOWUP_VERSION}。`);
+    if(f.round!==round) fail(`补测 round 必须按顺序为第 ${round} 轮。`);
+    if(!Array.isArray(f.axes)||f.axes.length!==targets.length||new Set(f.axes).size!==targets.length||f.axes.some(id=>!targets.includes(id))) fail(`第 ${round} 轮的 axes 必须为重算后仍处于 X 区间的维度：${targets.join(', ')}。`);
+    const extra=FOLLOWUP_QUESTIONS.filter(q=>q.round===round&&targets.includes(q.axis));
+    const extraAnswers=cleanAnswers(f.answers,extra);
+    bank.push(...extra);
+    for(const [id,value] of extraAnswers) answers.set(id,value);
+    followups.push({version:FOLLOWUP_VERSION,round,axes:[...targets],answers:copyAnswers(f.answers)});
+    current=calculate(payload,metadata,bank,answers);
+    if(current.complete) roundsCompleted++;
+  }
+  const targetAxes=middleAxes(current);
+  const status=!current.complete?'incomplete':!targetAxes.length?'resolved':followups.length>=MAX_FOLLOWUP_ROUNDS?'limit':'available';
+  if(followups.length) {
+    current.quality.warnings.push('追加题与基础题在各维度内等权合并。补测维度与轮数由先前结果选择，不能把不同补测题目组合当作同一固定问卷比较。');
+    if(!current.complete) current.quality.warnings.push('本轮追加回答未完整：含跳过或缺失的补测维度暂不显示合并分数，也不生成下一轮。可补齐本轮 JSON 后重新导入；原始画像仍保留。');
+  }
+  if(status==='limit') current.quality.warnings.push('已完成最多两轮补测；仍在中间区间的维度保留 X，不再追加题目。');
+  const result={
+    id:globalThis.crypto?.randomUUID?.()??`run-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    createdAt:new Date().toISOString(),instrument:INSTRUMENT,version:VERSION,scoringVersion:SCORING_VERSION,
+    mode:payload.mode,seed:payload.seed,metadata,...current,answers:copyAnswers(payload.answers),
+    ...(origin&&{origin}),...(followups.length&&{followups}),disclaimer:DISCLAIMER,
+  };
+  result.followup={version:FOLLOWUP_VERSION,maxRounds:MAX_FOLLOWUP_ROUNDS,roundsCompleted,status,targetAxes,baseline,
+    next:status==='available'?nextQuestionnaire(result):null};
+  return result;
+}
+
+/** Recompute eligibility from raw answers. Never trusts imported letters or next-question suggestions. */
+export function getFollowupQuestionnaire(payload) {
+  const result=scoreAssessment(payload);
+  if(!result.followup.next) return null;
+  // Looking up questions for an existing result is not a new experiment.
+  // Scoring/exporting input, in contrast, creates its own result identity.
+  if(typeof payload.id==='string'&&payload.id.length&&payload.id.length<=200
+    &&typeof payload.createdAt==='string'&&Number.isFinite(Date.parse(payload.createdAt))) {
+    result.id=payload.id;result.createdAt=new Date(payload.createdAt).toISOString();
+  }
+  return nextQuestionnaire(result);
 }
 
 export function getMethodology() {
@@ -132,6 +218,11 @@ export function getMethodology() {
     formula:'z = direction × (value − 4); score = mean(z) × 100 / 3; rightPercent = 50 + score / 2',
     deadband:{left:40,right:60,inclusive:true,letter:'X'},
     coverage:{full:{minimum:10,perDirection:4},quick:{minimum:4,perDirection:2}},
+    followup:{version:FOLLOWUP_VERSION,maxRounds:MAX_FOLLOWUP_ROUNDS,itemsPerAxisPerRound:4,
+      eligibility:'Only complete preceding stages; target exactly the axes whose unrounded rightPercent is in inclusive [40,60].',
+      scoring:'Pool base and supplemental answers with equal weight within each axis; unchanged deadband. All supplemental items on an axis must be numeric before showing its pooled score.',
+      stopping:'Stop when no axis is borderline or after two rounds. Preserve X if still in the middle interval; incomplete stages do not advance.',
+      interpretation:'Exploratory follow-up, not validated adaptive testing, higher confidence, or an independent retest. Different selected axes, rounds, modes and item sets are not equivalent forms.'},
     totalType:'Only shown when every item has a numeric answer; incomplete runs have type XXXX.',
     pairConsistency:'100 × (1 − mean(|z_pair1 − z_pair2|)/6). Descriptive response-pattern diagnostic, not psychometric reliability.',
     keyVisibility:'The item keys are public in source. The questionnaire JSON omits them to reduce priming, not to provide secure blinding.',

@@ -4,7 +4,7 @@
 
 - **网页：<https://uynewnas.github.io/LLM-16P/>**
 - **Agent 入口：[llms.txt](https://uynewnas.github.io/LLM-16P/llms.txt)**
-- [完整题库](https://uynewnas.github.io/LLM-16P/questions/full.json) · [快速题库](https://uynewnas.github.io/LLM-16P/questions/quick.json) · [回答 Schema](https://uynewnas.github.io/LLM-16P/schemas/answers.schema.json)
+- [完整题库](https://uynewnas.github.io/LLM-16P/questions/full.json) · [快速题库](https://uynewnas.github.io/LLM-16P/questions/quick.json) · [追加题库](https://uynewnas.github.io/LLM-16P/questions/followup.json) · [回答 Schema](https://uynewnas.github.io/LLM-16P/schemas/answers.schema.json)
 
 这是一个纯静态 GitHub Pages 项目：没有后端、账号、API Key、远程模型调用或服务端结果收集。问卷和计分对 Agent 可读，网页提供作答、JSON 导入导出、浏览器本地历史与比较。GitHub 托管平台自身的访问日志不受本应用控制。
 
@@ -47,13 +47,38 @@ import { getQuestionnaire, scoreAssessment } from './agent16.mjs';
 const questionnaire = getQuestionnaire({ mode: 'quick', seed: 'repeat-01' });
 // answers 必须来自实际回答，而不是用模板中的 null 伪造完成状态。
 const result = scoreAssessment(actualAnswerPayload);
+// 结果自动包含下一轮题目。没有需要补测的维度、回答不完整或达到两轮时为 null。
+const next = result.followup.next;
 ```
 
 `scoreAssessment` 拒绝重复/未知 ID、越界和非整数值、混用版本和模式。不接收字符串 "4"、布尔值或空字符串充当分数。输出中保留原始答案与配置，便于复核。
 
 GitHub Pages 提供静态 GET 文件；本项目**不声称提供 HTTP POST 计分 API 或 MCP 服务**。
 
-## 计分规则 v1.0.0
+## X 维度的针对性补测
+
+完成基础问卷后，结果页会自动给仍在中间区间的维度提供新题。例如 `INXJ-X` 的 T/F 和 A/T 尚未分明，第一轮只追加这两个维度，各 4 题，共 8 题。可以在网页手动记录、复制完整补测提示词给 Agent，或下载补测 JSON。
+
+- 每维度每轮 4 道新题，两个计分方向各 2 题；最多追加 **2 轮**，第二轮只针对仍为 X 的维度。
+- 原题和追加题在各自维度内等权合并，40–60 的边界不变；已明确、未追加的维度分数保持不变。
+- 补测结果另存为新记录，保留基础答案、各轮答案和原始记录关联；结果页同时显示原始画像与分数变化。旧版已保存记录也能生成补测。
+- 跳过或缺失属于资料不足，先补齐当前问卷。含缺失追加答案的维度暂不显示合并分数，也不会继续生成下一轮；网页支持保留已答内容并补齐。
+- 两轮后仍为 X 就保留 X。增加题目不代表得到更高的人格判断置信度，也不保证出现确定字母。
+
+CLI 支持直接提取下一轮：
+
+```sh
+node agent16.mjs followup result.json > followup-questionnaire.json
+# 依据其中的 questions 作答，只填写 answerTemplate.followups 最后一项的 answers。
+# 保留基础 answers、metadata、origin 和已经完成的轮次，保存为 followup-answers.json。
+node agent16.mjs score followup-answers.json > followup-result.json
+```
+
+ESM 也导出 `getFollowupQuestionnaire(payload)`。`scoreAssessment` 自动返回 `followup.next`，因此 Agent 可在生成结果时直接继续输出题目。`followup.status` 为 `available`、`resolved`、`limit` 或 `incomplete`；后三者的 `next` 为 `null`。原始 `version` 仍为 `1.0.0`，追加题使用独立 `followups[].version`，计分版本升级为 `1.1.0`。导入时会从原始答案重算每轮目标，不信任结果中的字母或建议；错误轮次、非目标维度、跨轮题号、重复题号与第三轮均被拒绝。
+
+基础 20 题、基础 60 题及不同补测路径属于不同题目组合。相同的 4 道追加题，在快速版该维度中的权重为 4/8，在完整版中为 4/16。比较时保留模式、追加维度和轮次；补测与基础分数的变化仅作描述性观察。详见 [补测题设计](docs/followup-design.md)。
+
+## 计分规则 v1.1.0
 
 - `1…7` 为有效回答，`4` 为中立，`null` 为无法判断/跳过。遗漏和 null 分别计数；不补成 4。
 - 单题有向值 `z = direction × (value − 4)`，方向 `+1` 的同意偏向右端，`−1` 偏向左端。
@@ -85,7 +110,7 @@ npm run build
 
 开发地址通常为 `http://localhost:5173/LLM-16P/`。Vite `base` 固定为 `/LLM-16P/`，适配此仓库的 GitHub Pages 项目路径。部署文件在 `dist/`。
 
-`app/lib/question-bank.ts` 是题库源文件；修改后运行 `npm run generate`，同步生成 `bank-data.mjs`、静态问卷和独立模块。改题或改规则时同步升级版本，不混合比较。
+`app/lib/question-bank.ts` 是基础题库源文件，`app/lib/followup-bank.ts` 是追加题库源文件；修改后运行 `npm run generate`，同步生成 `bank-data.mjs`、静态问卷和独立模块。改题或改规则时同步升级对应版本，不混合比较。
 
 GitHub Actions 在 `master` 推送时先执行无需第三方依赖的核心测试与静态构建完整性检查，再部署已提交的 `dist/`。仓库 Settings → Pages 的 Source 应为 **GitHub Actions**。更新界面后需要重新运行 `npm run build` 并提交新的 `dist/`；CI 会检查源文件指纹，避免发布旧构建。
 

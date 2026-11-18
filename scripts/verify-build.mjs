@@ -7,5 +7,5 @@ assert.deepEqual(await hashes(await sourceFiles()),manifest.source,'Source chang
 assert.deepEqual(await hashes((await walk('dist')).filter(f=>f!=='dist/build-manifest.json')),manifest.artifacts,'Built artifact changed after stamping. Rebuild.');
 const html=await readFile('dist/index.html','utf8');
 assert.match(html,/\/LLM-16P\/assets\//);
-for(const file of ['llms.txt','questions/full.json','questions/quick.json','schemas/answers.schema.json','agent16.mjs']) assert.ok(manifest.artifacts['dist/'+file],`Missing agent artifact ${file}`);
+for(const file of ['llms.txt','questions/full.json','questions/quick.json','questions/followup.json','schemas/answers.schema.json','agent16.mjs']) assert.ok(manifest.artifacts['dist/'+file],`Missing agent artifact ${file}`);
 console.log('Verified matching source fingerprints, subpath asset URLs and all static artifact hashes.');

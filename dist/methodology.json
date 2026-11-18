@@ -1,7 +1,7 @@
 {
   "instrument": "agent-mbti",
   "version": "1.0.0",
-  "scoringVersion": "1.0.0",
+  "scoringVersion": "1.1.0",
   "formula": "z = direction × (value − 4); score = mean(z) × 100 / 3; rightPercent = 50 + score / 2",
   "deadband": {
     "left": 40,
@@ -18,6 +18,15 @@
       "minimum": 4,
       "perDirection": 2
     }
+  },
+  "followup": {
+    "version": "1.0.0",
+    "maxRounds": 2,
+    "itemsPerAxisPerRound": 4,
+    "eligibility": "Only complete preceding stages; target exactly the axes whose unrounded rightPercent is in inclusive [40,60].",
+    "scoring": "Pool base and supplemental answers with equal weight within each axis; unchanged deadband. All supplemental items on an axis must be numeric before showing its pooled score.",
+    "stopping": "Stop when no axis is borderline or after two rounds. Preserve X if still in the middle interval; incomplete stages do not advance.",
+    "interpretation": "Exploratory follow-up, not validated adaptive testing, higher confidence, or an independent retest. Different selected axes, rounds, modes and item sets are not equivalent forms."
   },
   "totalType": "Only shown when every item has a numeric answer; incomplete runs have type XXXX.",
   "pairConsistency": "100 × (1 − mean(|z_pair1 − z_pair2|)/6). Descriptive response-pattern diagnostic, not psychometric reliability.",
